@@ -101,56 +101,39 @@ type Drive = {
 }
 
 const portLayouts: Record<
-  Exclude<PortId, "C">,
+  PortId,
   {
-    fallbackIcon: string
-    fallbackValue: string
-    fallbackUnit?: string
     position: string
-    compact: string
     connector: string
   }
 > = {
   A: {
-    fallbackIcon: "/SensorMotor.svg",
-    fallbackValue: "-",
     position: "left-[0%] top-[18%]",
-    compact: "left-[2%]",
     connector: "M 18 18 H 24 C 29 18 30 22 35 22 H 40",
   },
   B: {
-    fallbackIcon: "/SensorMotor.svg",
-    fallbackValue: "-",
     position: "right-[0%] top-[18%]",
-    compact: "left-[18%]",
     connector: "M 82 18 H 76 C 71 18 70 21 65 21 H 60",
   },
+  C: {
+    position: "left-[1%] top-[45%]",
+    connector: "M 38 28 H 30 C 25 28 24 37 19 37 H 17",
+  },
   D: {
-    fallbackIcon: "/SensorTouch.svg",
-    fallbackValue: "-",
-    fallbackUnit: "N",
     position: "right-[1%] top-[45%]",
-    compact: "left-[37%]",
     connector: "M 62 28 H 70 C 75 28 76 37 81 37 H 83",
   },
   E: {
-    fallbackIcon: "/SensorColor.svg",
-    fallbackValue: "-",
     position: "left-[0%] bottom-[7%]",
-    compact: "left-[55%]",
     connector: "M 18 60 H 22 C 26 60 29 57 29 53 V 41 C 29 37 32 34 36 34 H 40",
   },
   F: {
-    fallbackIcon: "/SensorDistance.svg",
-    fallbackValue: "-",
-    fallbackUnit: "cm",
     position: "right-[0%] bottom-[7%]",
-    compact: "left-[73%]",
     connector: "M 82 60 H 78 C 74 60 71 57 71 53 V 41 C 71 37 68 34 64 34 H 60",
   },
 }
 
-const shownPorts = ["A", "B", "D", "E", "F"] as const
+const shownPorts = ["A", "B", "C", "D", "E", "F"] as const
 
 function getGatewayWsUrl() {
   const configured = process.env.NEXT_PUBLIC_GATEWAY_WS_URL
@@ -506,7 +489,7 @@ export function HardwareDashboard() {
     return map
   }, [telemetry])
 
-  const ports = shownPorts.map((id) => {
+  const ports = shownPorts.flatMap((id) => {
     const layout = portLayouts[id]
     const motor = motorsByPort.get(id)
     const force = forcesByPort.get(id)
@@ -519,55 +502,43 @@ export function HardwareDashboard() {
         icon: "/SensorMotor.svg",
         value: valueOrDash(motor.count),
         unit: undefined,
-        connected: true,
         active: motor.stalled === undefined ? undefined : !motor.stalled,
-      }
+      }]
     }
     if (force) {
       const reading = forceValue(force)
-      return {
+      return [{
         ...layout,
         id,
         icon: "/SensorTouch.svg",
         value: reading.value,
         unit: reading.unit,
-        connected: true,
         active: force.touched,
-      }
+      }]
     }
     if (color) {
       const reading = colorValue(color)
-      return {
+      return [{
         ...layout,
         id,
         icon: "/SensorColor.svg",
         value: reading.value,
         unit: reading.unit,
-        connected: true,
         active: true,
-      }
+      }]
     }
     if (ultrasonic) {
       const reading = ultrasonicValue(ultrasonic)
-      return {
+      return [{
         ...layout,
         id,
         icon: "/SensorDistance.svg",
         value: reading.value,
         unit: reading.unit,
-        connected: true,
         active: ultrasonic.presence,
-      }
+      }]
     }
-    return {
-      ...layout,
-      id,
-      icon: layout.fallbackIcon,
-      value: layout.fallbackValue,
-      unit: layout.fallbackUnit,
-      connected: false,
-      active: undefined,
-    }
+    return []
   })
 
   const gyro = telemetry?.imu?.angular_velocity ?? []
@@ -677,10 +648,7 @@ export function HardwareDashboard() {
               <path
                 key={`${port.id}-connector`}
                 d={port.connector}
-                className={cn(
-                  "hub-connector",
-                  port.connected && "hub-connector-active"
-                )}
+                className="hub-connector hub-connector-active"
               />
             ))}
           </svg>
@@ -710,23 +678,22 @@ export function HardwareDashboard() {
         </div>
 
         <footer className="mx-auto grid w-full max-w-[640px] gap-3 border-t border-[#e7e7e7] pt-3">
-          <div className="relative h-12 w-full sm:hidden">
-            {ports.map((port) => (
-              <div
-                key={`${port.id}-compact`}
-                className={cn("absolute top-1", port.compact)}
-              >
-                <SensorReadout
-                  port={port.id}
-                  icon={port.icon}
-                  value={port.value}
-                  unit={port.unit}
-                  active={port.active}
-                  compact
-                />
-              </div>
-            ))}
-          </div>
+          {ports.length > 0 ? (
+            <div className="grid grid-cols-3 gap-2 sm:hidden">
+              {ports.map((port) => (
+                <div key={`${port.id}-compact`} className="min-w-0">
+                  <SensorReadout
+                    port={port.id}
+                    icon={port.icon}
+                    value={port.value}
+                    unit={port.unit}
+                    active={port.active}
+                    compact
+                  />
+                </div>
+              ))}
+            </div>
+          ) : null}
 
           <div className="grid gap-2 sm:grid-cols-[1fr_1.4fr]">
             <section className="grid gap-2 rounded-lg border border-[#e3e3e3] bg-white/60 p-3">
