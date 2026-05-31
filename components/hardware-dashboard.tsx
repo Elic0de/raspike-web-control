@@ -496,7 +496,7 @@ export function HardwareDashboard() {
     const color = colorsByPort.get(id)
     const ultrasonic = ultrasonicsByPort.get(id)
     if (motor) {
-      return {
+      return [{
         ...layout,
         id,
         icon: "/SensorMotor.svg",
