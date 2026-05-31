@@ -222,17 +222,17 @@ class Gateway {
   }
 }
 
-const app = next({ dev, hostname: host, port })
-const handle = app.getRequestHandler()
 const gateway = new Gateway()
-
-await app.prepare()
-
-const handleUpgrade = app.getUpgradeHandler()
 const server = createServer((req, res) => {
   handle(req, res)
 })
 const wss = new WebSocketServer({ noServer: true })
+const app = next({ dev, hostname: host, port, httpServer: server })
+const handle = app.getRequestHandler()
+
+await app.prepare()
+
+const handleUpgrade = app.getUpgradeHandler()
 
 server.on("upgrade", (req, socket, head) => {
   const pathname = new URL(req.url ?? "/", `http://${req.headers.host}`).pathname
@@ -254,11 +254,49 @@ server.listen(port, host, () => {
   console.log(`control tcp -> ${bridgeHost}:${bridgePort}`)
 })
 
-const shutdown = () => {
-  gateway.close()
-  wss.close()
-  server.close(() => process.exit(0))
+let shuttingDown = false
+
+const closeServer = () =>
+  new Promise((resolve) => {
+    server.close((error) => {
+      if (error && error.code !== "ERR_SERVER_NOT_RUNNING") {
+        console.error(`http server close error: ${error.message}`)
+      }
+      resolve()
+    })
+  })
+
+const shutdown = (signal) => {
+  if (shuttingDown) {
+    return
+  }
+  shuttingDown = true
+
+  const exitCode = signal === "SIGINT" ? 130 : signal === "SIGTERM" ? 143 : 0
+  const forceExit = setTimeout(() => process.exit(exitCode), 3000)
+  forceExit.unref()
+
+  ;(async () => {
+    gateway.close()
+    for (const client of wss.clients) {
+      client.terminate()
+    }
+    wss.close()
+
+    if (dev) {
+      server.closeAllConnections()
+    } else {
+      server.closeIdleConnections()
+    }
+
+    await closeServer()
+    await app.close()
+    process.exit(exitCode)
+  })().catch((error) => {
+    console.error(`shutdown error: ${error?.message ?? error}`)
+    process.exit(1)
+  })
 }
 
-process.on("SIGINT", shutdown)
-process.on("SIGTERM", shutdown)
+process.on("SIGINT", () => shutdown("SIGINT"))
+process.on("SIGTERM", () => shutdown("SIGTERM"))
