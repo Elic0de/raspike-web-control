@@ -81,50 +81,46 @@ const portLayouts: Record<
     fallbackValue: string
     fallbackUnit?: string
     position: string
-    bracket: string
     compact: string
+    connector: string
   }
 > = {
   A: {
     fallbackIcon: "/SensorMotor.svg",
     fallbackValue: "-",
-    position: "left-[2%] top-[18%]",
-    bracket:
-      "left-[17%] top-[23%] h-[16%] w-[8%] rounded-l-2xl border-y-2 border-l-2",
+    position: "left-[0%] top-[18%]",
     compact: "left-[2%]",
+    connector: "M 18 18 H 24 C 29 18 30 22 35 22 H 40",
   },
   B: {
     fallbackIcon: "/SensorMotor.svg",
     fallbackValue: "-",
-    position: "right-[2%] top-[18%]",
-    bracket:
-      "right-[17%] top-[23%] h-[16%] w-[8%] rounded-r-2xl border-y-2 border-r-2",
+    position: "right-[0%] top-[18%]",
     compact: "left-[18%]",
+    connector: "M 82 18 H 76 C 71 18 70 21 65 21 H 60",
   },
   D: {
     fallbackIcon: "/SensorTouch.svg",
     fallbackValue: "-",
     fallbackUnit: "N",
-    position: "right-[3%] top-[50%]",
-    bracket: "right-[22%] top-[52%] h-0 w-[12%] border-t-2",
+    position: "right-[1%] top-[45%]",
     compact: "left-[37%]",
+    connector: "M 62 28 H 70 C 75 28 76 37 81 37 H 83",
   },
   E: {
     fallbackIcon: "/SensorColor.svg",
     fallbackValue: "-",
-    position: "left-[3%] bottom-[9%]",
-    bracket:
-      "left-[17%] bottom-[18%] h-[16%] w-[8%] rounded-l-2xl border-y-2 border-l-2",
+    position: "left-[0%] bottom-[7%]",
     compact: "left-[55%]",
+    connector: "M 18 60 H 22 C 26 60 29 57 29 53 V 41 C 29 37 32 34 36 34 H 40",
   },
   F: {
     fallbackIcon: "/SensorDistance.svg",
     fallbackValue: "-",
     fallbackUnit: "cm",
-    position: "right-[3%] bottom-[8%]",
-    bracket:
-      "right-[17%] bottom-[18%] h-[16%] w-[8%] rounded-r-2xl border-y-2 border-r-2",
+    position: "right-[0%] bottom-[7%]",
     compact: "left-[73%]",
+    connector: "M 82 60 H 78 C 74 60 71 57 71 53 V 41 C 71 37 68 34 64 34 H 60",
   },
 }
 
@@ -443,6 +439,7 @@ export function HardwareDashboard() {
         icon: "/SensorMotor.svg",
         value: valueOrDash(motor.count),
         unit: undefined,
+        connected: true,
         active: motor.stalled === undefined ? undefined : !motor.stalled,
       }
     }
@@ -453,6 +450,7 @@ export function HardwareDashboard() {
         icon: "/SensorTouch.svg",
         value: force.touched ? "1" : "0",
         unit: "N",
+        connected: true,
         active: force.touched,
       }
     }
@@ -462,6 +460,7 @@ export function HardwareDashboard() {
       icon: layout.fallbackIcon,
       value: layout.fallbackValue,
       unit: layout.fallbackUnit,
+      connected: false,
       active: undefined,
     }
   })
@@ -563,17 +562,25 @@ export function HardwareDashboard() {
         </header>
 
         <div className="relative mx-auto hidden aspect-[1.38] w-full max-w-[640px] sm:block">
-          {ports.map((port) => (
-            <div
-              key={`${port.id}-bracket`}
-              className={cn(
-                "absolute border-dashed border-[#9c9c9c]",
-                port.bracket
-              )}
-            />
-          ))}
+          <svg
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 z-0 h-full w-full"
+            viewBox="0 0 100 72.5"
+            preserveAspectRatio="none"
+          >
+            {ports.map((port) => (
+              <path
+                key={`${port.id}-connector`}
+                d={port.connector}
+                className={cn(
+                  "hub-connector",
+                  port.connected && "hub-connector-active"
+                )}
+              />
+            ))}
+          </svg>
 
-          <div className="absolute top-[8%] left-1/2 w-[47%] -translate-x-1/2 drop-shadow-[0_18px_22px_rgba(0,0,0,0.08)]">
+          <div className="absolute top-[4%] left-1/2 z-10 w-[43%] -translate-x-1/2 drop-shadow-[0_18px_22px_rgba(0,0,0,0.08)]">
             <Image
               src="/hub-spike-bluetooth-hardware-page.9d0a04be.png"
               alt="LEGO SPIKE Prime hub"
@@ -585,7 +592,7 @@ export function HardwareDashboard() {
           </div>
 
           {ports.map((port) => (
-            <div key={port.id} className={cn("absolute", port.position)}>
+            <div key={port.id} className={cn("absolute z-10", port.position)}>
               <SensorReadout
                 port={port.id}
                 icon={port.icon}
