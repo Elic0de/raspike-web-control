@@ -30,6 +30,28 @@ type ForceTelemetry = {
   touched?: boolean
 }
 
+type ColorTelemetry = {
+  port?: number
+  rgb?: {
+    r?: number
+    g?: number
+    b?: number
+  }
+  hsv?: {
+    h?: number
+    s?: number
+    v?: number
+  }
+  reflection?: number
+  ambient?: number
+}
+
+type UltrasonicTelemetry = {
+  port?: number
+  distance_mm?: number
+  presence?: boolean
+}
+
 type Telemetry = {
   commands?: {
     left_power?: number
@@ -51,6 +73,8 @@ type Telemetry = {
   }
   motors?: Record<string, MotorTelemetry>
   force_sensors?: Record<string, ForceTelemetry>
+  color_sensors?: Record<string, ColorTelemetry>
+  ultrasonic_sensors?: Record<string, UltrasonicTelemetry>
   imu?: {
     acceleration?: number[]
     angular_velocity?: number[]
@@ -151,6 +175,29 @@ function valueOrDash(value: unknown, digits = 0) {
 
 function numberOrDash(value: unknown) {
   return typeof value === "number" && Number.isFinite(value) ? value : "-"
+}
+
+function colorValue(color: ColorTelemetry) {
+  if (typeof color.reflection === "number") {
+    return { value: valueOrDash(color.reflection), unit: "%" }
+  }
+  if (typeof color.ambient === "number") {
+    return { value: valueOrDash(color.ambient), unit: "%" }
+  }
+  if (color.hsv && typeof color.hsv.h === "number") {
+    return { value: valueOrDash(color.hsv.h), unit: "deg" }
+  }
+  if (color.rgb && typeof color.rgb.r === "number") {
+    return { value: valueOrDash(color.rgb.r), unit: "r" }
+  }
+  return { value: "-", unit: undefined }
+}
+
+function ultrasonicValue(ultrasonic: UltrasonicTelemetry) {
+  if (typeof ultrasonic.distance_mm !== "number") {
+    return { value: "-", unit: "cm" }
+  }
+  return { value: valueOrDash(ultrasonic.distance_mm / 10, 1), unit: "cm" }
 }
 
 function estimateTilt(accel: number[] | undefined) {
@@ -428,10 +475,34 @@ export function HardwareDashboard() {
     return map
   }, [telemetry])
 
+  const colorsByPort = useMemo(() => {
+    const map = new Map<PortId, ColorTelemetry>()
+    Object.values(telemetry?.color_sensors ?? {}).forEach((color) => {
+      const name = portName(color.port)
+      if (name) {
+        map.set(name, color)
+      }
+    })
+    return map
+  }, [telemetry])
+
+  const ultrasonicsByPort = useMemo(() => {
+    const map = new Map<PortId, UltrasonicTelemetry>()
+    Object.values(telemetry?.ultrasonic_sensors ?? {}).forEach((ultrasonic) => {
+      const name = portName(ultrasonic.port)
+      if (name) {
+        map.set(name, ultrasonic)
+      }
+    })
+    return map
+  }, [telemetry])
+
   const ports = shownPorts.map((id) => {
     const layout = portLayouts[id]
     const motor = motorsByPort.get(id)
     const force = forcesByPort.get(id)
+    const color = colorsByPort.get(id)
+    const ultrasonic = ultrasonicsByPort.get(id)
     if (motor) {
       return {
         ...layout,
@@ -448,10 +519,34 @@ export function HardwareDashboard() {
         ...layout,
         id,
         icon: "/SensorTouch.svg",
-        value: force.touched ? "1" : "0",
-        unit: "N",
+        value: force.touched ? "TOUCH" : "OPEN",
+        unit: undefined,
         connected: true,
         active: force.touched,
+      }
+    }
+    if (color) {
+      const reading = colorValue(color)
+      return {
+        ...layout,
+        id,
+        icon: "/SensorColor.svg",
+        value: reading.value,
+        unit: reading.unit,
+        connected: true,
+        active: true,
+      }
+    }
+    if (ultrasonic) {
+      const reading = ultrasonicValue(ultrasonic)
+      return {
+        ...layout,
+        id,
+        icon: "/SensorDistance.svg",
+        value: reading.value,
+        unit: reading.unit,
+        connected: true,
+        active: ultrasonic.presence,
       }
     }
     return {
