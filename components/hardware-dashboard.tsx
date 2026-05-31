@@ -27,6 +27,8 @@ type MotorTelemetry = {
 
 type ForceTelemetry = {
   port?: number
+  force_n?: number
+  distance?: number
   touched?: boolean
 }
 
@@ -198,6 +200,13 @@ function ultrasonicValue(ultrasonic: UltrasonicTelemetry) {
     return { value: "-", unit: "cm" }
   }
   return { value: valueOrDash(ultrasonic.distance_mm / 10, 1), unit: "cm" }
+}
+
+function forceValue(force: ForceTelemetry) {
+  if (typeof force.force_n === "number") {
+    return { value: valueOrDash(force.force_n, 1), unit: "N" }
+  }
+  return { value: force.touched ? "TOUCH" : "OPEN", unit: undefined }
 }
 
 function estimateTilt(accel: number[] | undefined) {
@@ -515,12 +524,13 @@ export function HardwareDashboard() {
       }
     }
     if (force) {
+      const reading = forceValue(force)
       return {
         ...layout,
         id,
         icon: "/SensorTouch.svg",
-        value: force.touched ? "TOUCH" : "OPEN",
-        unit: undefined,
+        value: reading.value,
+        unit: reading.unit,
         connected: true,
         active: force.touched,
       }
