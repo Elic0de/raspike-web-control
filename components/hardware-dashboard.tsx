@@ -186,10 +186,13 @@ function ultrasonicValue(ultrasonic: UltrasonicTelemetry) {
 }
 
 function forceValue(force: ForceTelemetry) {
-  if (typeof force.force_n === "number") {
+  if (typeof force.touched === "boolean") {
+    return { value: force.touched ? "TOUCH" : "OPEN", unit: undefined }
+  }
+  if (typeof force.force_n === "number" && Math.abs(force.force_n) >= 0.05) {
     return { value: valueOrDash(force.force_n, 1), unit: "N" }
   }
-  return { value: force.touched ? "TOUCH" : "OPEN", unit: undefined }
+  return { value: "-", unit: undefined }
 }
 
 function estimateTilt(accel: number[] | undefined) {
