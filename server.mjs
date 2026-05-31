@@ -1,8 +1,11 @@
 import { createServer } from "node:http"
 import dgram from "node:dgram"
 import net from "node:net"
+import nextEnv from "@next/env"
 import next from "next"
 import { WebSocketServer, WebSocket } from "ws"
+
+nextEnv.loadEnvConfig(process.cwd(), process.env.NODE_ENV !== "production")
 
 const host = process.env.HOST || process.env.RASPIKE_WEBUI_HOST || "0.0.0.0"
 const port = Number.parseInt(process.env.PORT || "3000", 10)
@@ -225,20 +228,23 @@ const gateway = new Gateway()
 
 await app.prepare()
 
+const handleUpgrade = app.getUpgradeHandler()
 const server = createServer((req, res) => {
   handle(req, res)
 })
 const wss = new WebSocketServer({ noServer: true })
 
 server.on("upgrade", (req, socket, head) => {
-  if (req.url === "/ws") {
+  const pathname = new URL(req.url ?? "/", `http://${req.headers.host}`).pathname
+
+  if (pathname === "/ws") {
     wss.handleUpgrade(req, socket, head, (ws) => {
       gateway.addClient(ws)
     })
     return
   }
 
-  socket.destroy()
+  handleUpgrade(req, socket, head)
 })
 
 server.listen(port, host, () => {
