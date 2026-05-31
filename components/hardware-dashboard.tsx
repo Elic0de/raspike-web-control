@@ -604,21 +604,8 @@ export function HardwareDashboard() {
           ))}
         </div>
 
-        <div className="mx-auto grid w-full max-w-sm gap-6 py-8 sm:hidden">
-          <div className="mx-auto w-[72%] drop-shadow-[0_18px_22px_rgba(0,0,0,0.08)]">
-            <Image
-              src="/hub-spike-bluetooth-hardware-page.9d0a04be.png"
-              alt="LEGO SPIKE Prime hub"
-              width={450}
-              height={510}
-              priority
-              className="h-auto w-full"
-            />
-          </div>
-        </div>
-
         <footer className="mx-auto grid w-full max-w-[640px] gap-3 border-t border-[#e7e7e7] pt-3">
-          <div className="relative h-12 w-full">
+          <div className="relative h-12 w-full sm:hidden">
             {ports.map((port) => (
               <div
                 key={`${port.id}-compact`}
