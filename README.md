@@ -50,12 +50,13 @@ TELEMETRY_HOST=0.0.0.0
 TELEMETRY_PORT=8765
 BRIDGE_HOST=<RASPI_IP_ADDRESS>
 BRIDGE_PORT=8766
-NEXT_PUBLIC_CAMERA_STREAM_URL=http://raspi.local:8080/stream.mjpg
+CAMERA_STREAM_URL=http://<RASPI_IP_ADDRESS>:8080/stream.mjpg
 ```
 
-The camera panel reads the RasPi Control API MJPEG stream directly from the
-browser. Use `raspi.local` or the RasPi IP address, not `localhost`, unless the
-browser is running on the RasPi itself.
+The camera panel uses `/camera/stream.mjpg` by default. The Web UI server
+proxies that path to the RasPi Control API, using `CAMERA_STREAM_URL` when set
+or `http://${BRIDGE_HOST}:8080/stream.mjpg` otherwise. This avoids relying on
+the browser resolving `raspi.local`.
 
 For production:
 

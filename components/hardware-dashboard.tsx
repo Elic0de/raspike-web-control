@@ -149,7 +149,7 @@ function getGatewayWsUrl() {
 function getCameraStreamUrl() {
   return (
     process.env.NEXT_PUBLIC_CAMERA_STREAM_URL ??
-    "http://raspi.local:8080/stream.mjpg"
+    "/camera/stream.mjpg"
   )
 }
 

@@ -1,4 +1,4 @@
-import { createServer } from "node:http"
+import { createServer, request } from "node:http"
 import dgram from "node:dgram"
 import net from "node:net"
 import nextEnv from "@next/env"
@@ -27,6 +27,10 @@ const bridgePort = Number.parseInt(
   10
 )
 const bridgeRetrySec = Number.parseFloat(process.env.BRIDGE_RETRY_SEC || "1")
+const cameraStreamUrl =
+  process.env.CAMERA_STREAM_URL ||
+  process.env.RASPI_CAMERA_STREAM_URL ||
+  `http://${bridgeHost}:8080/stream.mjpg`
 const dev = process.env.NODE_ENV !== "production"
 
 class Gateway {
@@ -224,6 +228,11 @@ class Gateway {
 
 const gateway = new Gateway()
 const server = createServer((req, res) => {
+  const pathname = new URL(req.url ?? "/", `http://${req.headers.host}`).pathname
+  if (pathname === "/camera/stream.mjpg") {
+    proxyCameraStream(req, res)
+    return
+  }
   handle(req, res)
 })
 const wss = new WebSocketServer({ noServer: true })
@@ -252,7 +261,48 @@ server.listen(port, host, () => {
   const displayHost = host === "0.0.0.0" ? "127.0.0.1" : host
   console.log(`WebUI: http://${displayHost}:${port}`)
   console.log(`control tcp -> ${bridgeHost}:${bridgePort}`)
+  console.log(`camera stream <- ${cameraStreamUrl}`)
 })
+
+function proxyCameraStream(_req, res) {
+  let upstreamUrl
+  try {
+    upstreamUrl = new URL(cameraStreamUrl)
+  } catch {
+    res.writeHead(502, { "content-type": "text/plain" })
+    res.end("invalid CAMERA_STREAM_URL")
+    return
+  }
+
+  const upstream = request(
+    upstreamUrl,
+    {
+      method: "GET",
+      timeout: 5000,
+    },
+    (upstreamRes) => {
+      res.writeHead(upstreamRes.statusCode ?? 502, {
+        "content-type":
+          upstreamRes.headers["content-type"] ||
+          "multipart/x-mixed-replace; boundary=frame",
+        "cache-control": "no-store",
+      })
+      upstreamRes.pipe(res)
+    }
+  )
+
+  upstream.on("timeout", () => {
+    upstream.destroy(new Error("camera stream timeout"))
+  })
+  upstream.on("error", (error) => {
+    if (!res.headersSent) {
+      res.writeHead(502, { "content-type": "text/plain" })
+    }
+    res.end(`camera stream unavailable: ${error.message}`)
+  })
+  res.on("close", () => upstream.destroy())
+  upstream.end()
+}
 
 let shuttingDown = false
 
