@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef, useState } from "react"
 import {
   ChevronDown,
   CircleStop,
+  Camera,
   Gauge,
   Gamepad2,
   Power,
@@ -143,6 +144,13 @@ function getGatewayWsUrl() {
 
   const proto = window.location.protocol === "https:" ? "wss:" : "ws:"
   return `${proto}//${window.location.host}/ws`
+}
+
+function getCameraStreamUrl() {
+  return (
+    process.env.NEXT_PUBLIC_CAMERA_STREAM_URL ??
+    "http://raspi.local:8080/stream.mjpg"
+  )
 }
 
 function portName(port: number | undefined): PortId | undefined {
@@ -334,6 +342,7 @@ export function HardwareDashboard() {
   const [gateway, setGateway] = useState<GatewayStatus>({})
   const [telemetry, setTelemetry] = useState<Telemetry | null>(null)
   const [enabled, setEnabled] = useState(false)
+  const [cameraOk, setCameraOk] = useState(false)
   const [drive, setDrive] = useState<Drive>({
     throttle: 0,
     steering: 0,
@@ -563,6 +572,7 @@ export function HardwareDashboard() {
   const hasTelemetry =
     Boolean(gateway.telemetry_count && gateway.telemetry_count > 0) &&
     (gateway.telemetry_age_sec ?? 999) < 2
+  const cameraStreamUrl = getCameraStreamUrl()
 
   const toggleEnabled = () => {
     const next = !enabled
@@ -699,6 +709,31 @@ export function HardwareDashboard() {
           ) : null}
 
           <div className="grid gap-2 sm:grid-cols-[1fr_1.4fr]">
+            <section className="grid gap-2 rounded-lg border border-[#e3e3e3] bg-white/60 p-3 sm:col-span-2">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 text-sm font-semibold text-[#666]">
+                  <Camera className="size-4 text-[#0087ff]" />
+                  Camera
+                </div>
+                <StatusPill active={cameraOk}>
+                  {cameraOk ? "stream live" : "stream waiting"}
+                </StatusPill>
+              </div>
+              <div className="overflow-hidden rounded-md border border-[#e1e1e1] bg-[#111]">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={cameraStreamUrl}
+                  alt="RasPi camera stream"
+                  className="aspect-video h-auto w-full object-contain"
+                  onLoad={() => setCameraOk(true)}
+                  onError={() => setCameraOk(false)}
+                />
+              </div>
+              <div className="truncate text-[11px] text-[#aaa]">
+                {cameraStreamUrl}
+              </div>
+            </section>
+
             <section className="grid gap-2 rounded-lg border border-[#e3e3e3] bg-white/60 p-3">
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2 text-sm font-semibold text-[#666]">
