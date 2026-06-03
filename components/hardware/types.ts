@@ -17,11 +17,24 @@ export type HardwarePort = {
   icon: string
   value: string
   active?: boolean
-  kind: "motor" | "force" | "color" | "distance" | "empty"
+  kind: PortStatus["type"]
   details: {
     label: string
     value: string
   }[]
+}
+
+export type PortStatus = {
+  port: PortId
+  type: "motor" | "force" | "color" | "distance" | "empty"
+  value: string
+}
+
+export type HardwareTelemetry = {
+  yaw?: number
+  pitch?: number
+  roll?: number
+  ports: PortStatus[]
 }
 
 export type Drive = {

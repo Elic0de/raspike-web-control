@@ -6,13 +6,13 @@ import { Download, RotateCcw } from "lucide-react"
 import { ActionsCard } from "@/components/hardware/ActionsCard"
 import { CameraCard } from "@/components/hardware/CameraCard"
 import { DriveCard } from "@/components/hardware/DriveCard"
-import { HardwareInfoDialog } from "@/components/hardware/HardwareInfoDialog"
 import { HardwarePortBar } from "@/components/hardware/HardwarePortBar"
 import { Header } from "@/components/hardware/Header"
 import { HubButtonsCard } from "@/components/hardware/HubButtonsCard"
 import type {
   Drive,
   HardwarePort,
+  HardwareTelemetry,
   HeaderStatus,
   PortId,
   WsState,
@@ -181,6 +181,17 @@ function batteryText(telemetry: Telemetry | null) {
     return `${(voltage / 1000).toFixed(2)} V`
   }
   return "battery"
+}
+
+function estimateTilt(accel: number[] | undefined) {
+  if (!accel || accel.length < 3 || accel.some((v) => !Number.isFinite(v))) {
+    return { pitch: undefined, roll: undefined }
+  }
+  const [x, y, z] = accel
+  return {
+    pitch: Math.atan2(-x, Math.sqrt(y * y + z * z)) * (180 / Math.PI),
+    roll: Math.atan2(y, z) * (180 / Math.PI),
+  }
 }
 
 function getAxis(keys: Set<string>): Drive {
@@ -433,6 +444,21 @@ export function HardwareDashboard() {
     batteryText: batteryText(telemetry),
     enabled,
   }
+  const gyro = telemetry?.imu?.angular_velocity ?? []
+  const tilt = estimateTilt(telemetry?.imu?.acceleration)
+  const hardwareTelemetry: HardwareTelemetry = {
+    yaw:
+      typeof gyro[2] === "number" && Number.isFinite(gyro[2])
+        ? gyro[2]
+        : undefined,
+    pitch: tilt.pitch,
+    roll: tilt.roll,
+    ports: ports.map((port) => ({
+      port: port.id,
+      type: port.kind,
+      value: port.value,
+    })),
+  }
 
   const toggleEnabled = () => {
     const next = !enabled
@@ -450,13 +476,7 @@ export function HardwareDashboard() {
         <Header
           gatewayUrl={wsUrl}
           status={headerStatus}
-          hardwareInfo={
-            <HardwareInfoDialog
-              ports={ports}
-              gatewayUrl={wsUrl}
-              status={headerStatus}
-            />
-          }
+          hardwareTelemetry={hardwareTelemetry}
           onToggleEnabled={toggleEnabled}
           onStop={() => sendAction("emergency_stop")}
         />

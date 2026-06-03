@@ -1,37 +1,33 @@
 import Image from "next/image"
-import type { ReactNode } from "react"
 import { Battery, Bluetooth, Power, StopCircle } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog"
-import { HeaderStatus } from "@/components/hardware/types"
+import type {
+  HardwareTelemetry,
+  HeaderStatus,
+} from "@/components/hardware/types"
+import { HardwareDetailDialog } from "@/components/hardware/HardwareDetailDialog"
 import { StatusBadge } from "@/components/hardware/StatusBadge"
 
 export function Header({
   gatewayUrl,
   status,
-  hardwareInfo,
+  hardwareTelemetry,
   onToggleEnabled,
   onStop,
 }: {
   gatewayUrl: string
   status: HeaderStatus
-  hardwareInfo: ReactNode
+  hardwareTelemetry: HardwareTelemetry
   onToggleEnabled: () => void
   onStop: () => void
 }) {
   return (
     <header className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
       <div className="flex min-w-0 items-center gap-3">
-        <Dialog>
-          <DialogTrigger asChild>
+        <HardwareDetailDialog
+          telemetry={hardwareTelemetry}
+          trigger={
             <button
               type="button"
               className="relative grid size-14 shrink-0 place-items-center rounded-full border-2 border-blue-500 bg-white shadow-sm transition hover:bg-blue-50 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:outline-none"
@@ -47,17 +43,8 @@ export function Header({
               />
               <span className="absolute right-0 bottom-0 size-4 rounded-full border-2 border-white bg-green-500" />
             </button>
-          </DialogTrigger>
-          <DialogContent className="max-w-5xl">
-            <DialogHeader>
-              <DialogTitle>Hardware information</DialogTitle>
-              <DialogDescription>
-                Hub connection and A-F port telemetry.
-              </DialogDescription>
-            </DialogHeader>
-            {hardwareInfo}
-          </DialogContent>
-        </Dialog>
+          }
+        />
         <div className="min-w-0">
           <h1 className="text-xl font-semibold tracking-normal text-neutral-900">
             Hardware
