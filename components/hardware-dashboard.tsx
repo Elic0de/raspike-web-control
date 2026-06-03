@@ -281,6 +281,38 @@ export function HardwareDashboard() {
   }, [])
 
   useEffect(() => {
+    let closed = false
+    let timer: ReturnType<typeof setTimeout> | undefined
+
+    const checkCamera = async () => {
+      try {
+        const response = await fetch("/camera/status", { cache: "no-store" })
+        const payload = await response.json()
+        if (!closed) {
+          setCameraOk(response.ok && Boolean(payload.ok))
+        }
+      } catch {
+        if (!closed) {
+          setCameraOk(false)
+        }
+      } finally {
+        if (!closed) {
+          timer = setTimeout(checkCamera, 3000)
+        }
+      }
+    }
+
+    checkCamera()
+
+    return () => {
+      closed = true
+      if (timer) {
+        clearTimeout(timer)
+      }
+    }
+  }, [])
+
+  useEffect(() => {
     const updateDrive = () => {
       const next = getAxis(keysRef.current)
       setDrive(next)

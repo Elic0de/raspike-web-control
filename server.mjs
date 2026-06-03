@@ -229,6 +229,10 @@ class Gateway {
 const gateway = new Gateway()
 const server = createServer((req, res) => {
   const pathname = new URL(req.url ?? "/", `http://${req.headers.host}`).pathname
+  if (pathname === "/camera/status") {
+    checkCameraStream(res)
+    return
+  }
   if (pathname === "/camera/stream.mjpg") {
     proxyCameraStream(req, res)
     return
@@ -301,6 +305,65 @@ function proxyCameraStream(_req, res) {
     res.end(`camera stream unavailable: ${error.message}`)
   })
   res.on("close", () => upstream.destroy())
+  upstream.end()
+}
+
+function checkCameraStream(res) {
+  let upstreamUrl
+  try {
+    upstreamUrl = new URL(cameraStreamUrl)
+  } catch {
+    res.writeHead(502, { "content-type": "application/json" })
+    res.end(JSON.stringify({ ok: false, error: "invalid CAMERA_STREAM_URL" }))
+    return
+  }
+
+  let settled = false
+  const finish = (status, payload) => {
+    if (settled) {
+      return
+    }
+    settled = true
+    res.writeHead(status, {
+      "content-type": "application/json",
+      "cache-control": "no-store",
+    })
+    res.end(JSON.stringify(payload))
+  }
+
+  const upstream = request(
+    upstreamUrl,
+    {
+      method: "GET",
+      timeout: 3000,
+    },
+    (upstreamRes) => {
+      if ((upstreamRes.statusCode ?? 0) >= 400) {
+        finish(upstreamRes.statusCode ?? 502, {
+          ok: false,
+          status: upstreamRes.statusCode,
+        })
+        upstream.destroy()
+        return
+      }
+
+      upstreamRes.once("data", (chunk) => {
+        finish(200, {
+          ok: chunk.length > 0,
+          status: upstreamRes.statusCode,
+          content_type: upstreamRes.headers["content-type"] ?? null,
+        })
+        upstream.destroy()
+      })
+    }
+  )
+
+  upstream.on("timeout", () => {
+    upstream.destroy(new Error("camera stream timeout"))
+  })
+  upstream.on("error", (error) => {
+    finish(502, { ok: false, error: error.message })
+  })
   upstream.end()
 }
 
