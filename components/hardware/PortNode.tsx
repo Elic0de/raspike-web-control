@@ -17,7 +17,7 @@ function sensorIcon(type: PortStatus["type"]) {
   if (type === "distance") {
     return "/SensorDistance.svg"
   }
-  return "/SensorColor.svg"
+  return undefined
 }
 
 export function PortNode({
@@ -37,17 +37,18 @@ export function PortNode({
       )}
     >
       <div className="flex items-center gap-3">
-        <div className="grid size-16 place-items-center rounded-2xl border border-neutral-300 bg-white shadow-sm">
-          <Image
-            src={icon}
-            alt=""
-            width={44}
-            height={44}
-            className={cn(
-              "size-11 object-contain opacity-75",
-              status.type === "empty" && "opacity-25"
-            )}
-          />
+        <div className="grid size-16 place-items-center">
+          {icon ? (
+            <Image
+              src={icon}
+              alt=""
+              width={48}
+              height={48}
+              className="size-12 object-contain opacity-75"
+            />
+          ) : (
+            <span className="size-11 rounded-full border border-dashed border-neutral-300 bg-neutral-50" />
+          )}
         </div>
         <span className="text-sm font-semibold text-neutral-400">
           {status.port}

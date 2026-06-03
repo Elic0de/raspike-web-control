@@ -14,10 +14,11 @@ export type HeaderStatus = {
 
 export type HardwarePort = {
   id: PortId
-  icon: string
+  icon?: string
   value: string
   active?: boolean
   kind: PortStatus["type"]
+  connected: boolean
   details: {
     label: string
     value: string

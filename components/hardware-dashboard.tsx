@@ -97,15 +97,6 @@ type GatewayStatus = {
 
 const shownPorts = ["A", "B", "C", "D", "E", "F"] as const
 
-const fallbackPorts: Record<PortId, Pick<HardwarePort, "icon" | "value">> = {
-  A: { icon: "/SensorMotor.svg", value: "-" },
-  B: { icon: "/SensorMotor.svg", value: "-" },
-  C: { icon: "/SensorMotor.svg", value: "-" },
-  D: { icon: "/SensorTouch.svg", value: "-" },
-  E: { icon: "/SensorColor.svg", value: "-" },
-  F: { icon: "/SensorDistance.svg", value: "-" },
-}
-
 function getGatewayWsUrl() {
   const configured = process.env.NEXT_PUBLIC_GATEWAY_WS_URL
   if (configured) {
@@ -362,6 +353,7 @@ export function HardwareDashboard() {
         value: motorValue(motor),
         active: motor.stalled === undefined ? undefined : !motor.stalled,
         kind: "motor",
+        connected: true,
         details: [
           { label: "position", value: detailValue(motor.count, "deg") },
           { label: "speed", value: detailValue(motor.speed, "deg/s") },
@@ -379,6 +371,7 @@ export function HardwareDashboard() {
         value: forceValue(force),
         active: force.touched,
         kind: "force",
+        connected: true,
         details: [
           { label: "touched", value: force.touched ? "yes" : "no" },
           { label: "force", value: detailValue(force.force_n, "N", 1) },
@@ -395,6 +388,7 @@ export function HardwareDashboard() {
         value: colorValue(color),
         active: true,
         kind: "color",
+        connected: true,
         details: [
           { label: "reflection", value: detailValue(color.reflection, "%") },
           { label: "ambient", value: detailValue(color.ambient, "%") },
@@ -411,6 +405,7 @@ export function HardwareDashboard() {
         value: ultrasonicValue(ultrasonic),
         active: ultrasonic.presence,
         kind: "distance",
+        connected: true,
         details: [
           {
             label: "distance",
@@ -423,8 +418,9 @@ export function HardwareDashboard() {
 
     return {
       id,
-      ...fallbackPorts[id],
+      value: "-",
       kind: "empty",
+      connected: false,
       details: [
         { label: "status", value: "waiting" },
         { label: "port", value: id },
