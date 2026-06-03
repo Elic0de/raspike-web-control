@@ -17,11 +17,14 @@ const telemetryPort = Number.parseInt(
   process.env.TELEMETRY_PORT || process.env.RASPIKE_TELEMETRY_PORT || "8765",
   10
 )
+const targetMode = (process.env.RASPIKE_TARGET || "remote").toLowerCase()
+const remoteHost = process.env.RASPIKE_REMOTE_HOST || process.env.RASPIKE_HOST
+const defaultBridgeHost =
+  targetMode === "local" ? remoteHost || "127.0.0.1" : "127.0.0.1"
 const bridgeHost =
   process.env.BRIDGE_HOST ||
   process.env.RASPIKE_BRIDGE_HOST ||
-  process.env.RASPIKE_HOST ||
-  "127.0.0.1"
+  defaultBridgeHost
 const bridgePort = Number.parseInt(
   process.env.BRIDGE_PORT || process.env.RASPIKE_WEB_CONTROL_PORT || "8766",
   10
@@ -264,8 +267,12 @@ server.listen(port, host, () => {
   gateway.listen()
   const displayHost = host === "0.0.0.0" ? "127.0.0.1" : host
   console.log(`WebUI: http://${displayHost}:${port}`)
+  console.log(`target mode: ${targetMode}`)
   console.log(`control tcp -> ${bridgeHost}:${bridgePort}`)
   console.log(`camera stream <- ${cameraStreamUrl}`)
+  if (targetMode === "local" && !remoteHost && !process.env.BRIDGE_HOST) {
+    console.warn("local target mode has no RASPIKE_REMOTE_HOST or BRIDGE_HOST")
+  }
 })
 
 function proxyCameraStream(_req, res) {
