@@ -4,6 +4,7 @@ import { ChevronDown } from "lucide-react"
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
@@ -54,6 +55,9 @@ export function HardwareDetailDialog({
       <DialogTrigger asChild>{trigger}</DialogTrigger>
       <DialogContent className="h-[calc(100svh-2rem)] w-[calc(100vw-2rem)] max-w-[1040px] overflow-hidden border-neutral-200 bg-white p-0 shadow-2xl sm:max-w-[1040px]">
         <DialogTitle className="sr-only">Hardware detail</DialogTitle>
+        <DialogDescription className="sr-only">
+          Hub orientation and A-F port connection detail.
+        </DialogDescription>
         <div className="grid gap-0 px-8 pt-8 pb-6">
           <div className="mx-auto flex w-full max-w-[760px] items-center justify-between border-b border-neutral-200 pb-4 text-sm">
             <div className="flex items-center gap-5 text-neutral-400">
