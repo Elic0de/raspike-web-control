@@ -1,4 +1,4 @@
-import { Camera } from "lucide-react"
+import { Camera, VideoOff } from "lucide-react"
 
 import {
   Card,
@@ -36,21 +36,48 @@ export function CameraCard({
       <CardContent className="grid min-h-0 flex-1 grid-rows-[minmax(0,1fr)_auto] px-4 pb-4">
         <div className="relative min-h-0 overflow-hidden rounded-xl border border-neutral-200 bg-neutral-950">
           <div className="absolute top-3 left-3 z-10 flex flex-wrap gap-2">
-            <span className="rounded-full bg-green-500 px-2.5 py-1 text-[11px] font-semibold text-white">
-              LIVE
+            <span
+              className={
+                cameraOk
+                  ? "rounded-full bg-green-500 px-2.5 py-1 text-[11px] font-semibold text-white"
+                  : "rounded-full bg-amber-500 px-2.5 py-1 text-[11px] font-semibold text-white"
+              }
+            >
+              {cameraOk ? "LIVE" : "WAITING"}
             </span>
             <span className="rounded-full bg-white/10 px-2.5 py-1 text-[11px] font-medium text-white backdrop-blur">
               640x480
             </span>
-            <span className="rounded-full bg-white/10 px-2.5 py-1 text-[11px] font-medium text-white backdrop-blur">
-              30fps
-            </span>
+            {cameraOk ? (
+              <span className="rounded-full bg-white/10 px-2.5 py-1 text-[11px] font-medium text-white backdrop-blur">
+                30fps
+              </span>
+            ) : null}
           </div>
+          {!cameraOk ? (
+            <div className="absolute inset-0 grid place-items-center px-6 text-center">
+              <div className="grid justify-items-center gap-3 text-neutral-400">
+                <VideoOff className="size-9" />
+                <div>
+                  <div className="text-sm font-medium text-neutral-300">
+                    Camera stream unavailable
+                  </div>
+                  <div className="mt-1 text-xs text-neutral-500">
+                    Waiting for MJPEG frames from the Raspberry Pi.
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : null}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={streamUrl}
             alt="RasPi camera stream"
-            className="h-full w-full object-contain"
+            className={
+              cameraOk
+                ? "h-full w-full object-contain"
+                : "h-full w-full object-contain opacity-0"
+            }
             onLoad={onLoad}
             onError={onError}
           />
